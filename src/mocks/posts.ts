@@ -1,0 +1,58 @@
+import type { Post } from "../types/post";
+
+export const mockPosts: Post[] = [
+  {
+    id: 1,
+    username: "KingSlayer99",
+    avatarUrl: "~/assets/avatars/avatar1.jpg",
+    text: "Только что зашёл в Топ-100 🏆 Мега-найт + Голем = победа!",
+    likes: 142,
+    comments: 23,
+    liked: false,
+  },
+  {
+    id: 2,
+    username: "ArenaQueen",
+    avatarUrl: "~/assets/avatars/avatar2.jpg",
+    text: "Кто-нибудь знает как контрить Хог + Файербол? Уже 10 поражений подряд 😭",
+    likes: 87,
+    comments: 41,
+    liked: false,
+  },
+  {
+    id: 3,
+    username: "CardMaster_RU",
+    avatarUrl: "~/assets/avatars/avatar3.jpg",
+    text: "Новая колода с Эволюцией скелетов — просто имба. Делюсь в колодах 👇",
+    likes: 310,
+    comments: 58,
+    liked: true,
+  },
+  {
+    id: 4,
+    username: "ProBridge",
+    avatarUrl: "~/assets/avatars/avatar4.jpg",
+    text: "Турнир на выходных — кто участвует?",
+    likes: 55,
+    comments: 19,
+    liked: false,
+  },
+  {
+    id: 5,
+    username: "RoyaleDad",
+    avatarUrl: "~/assets/avatars/avatar5.jpg",
+    text: "Играю уже 4 года, а всё ещё не могу пройти Арену 14 😅",
+    likes: 201,
+    comments: 67,
+    liked: false,
+  },
+  {
+    id: 6,
+    username: "SpeedrunnerCR",
+    avatarUrl: "~/assets/avatars/avatar6.jpg",
+    text: "Рекорд — победа за 47 секунд с колодой из одних заклинаний 💨",
+    likes: 489,
+    comments: 102,
+    liked: false,
+  },
+];
