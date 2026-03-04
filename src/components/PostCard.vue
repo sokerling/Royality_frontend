@@ -1,48 +1,82 @@
 <template>
   <GridLayout class="card-wrapper" rows="*" columns="*" @touch="onCardTouch" ref="wrapper">
 
-    <!-- Внешняя рамка -->
-    <StackLayout row="0" col="0" class="card-border" />
+    <!-- Тень (внешний слой) -->
+    <StackLayout row="0" col="0" class="card-shadow" />
 
     <!-- Внутренняя карточка -->
-    <StackLayout row="0" col="0" class="card" margin="3">
+    <StackLayout row="0" col="0" class="card" margin="4">
 
-      <!-- Шапка: аватар + никнейм -->
-      <GridLayout columns="46, *" class="card-header">
-        <GridLayout col="0" rows="*" columns="*">
+      <!-- Шапка: аватар + никнейм + время -->
+      <GridLayout columns="auto, *, auto" rows="auto, auto" class="card-header">
+
+        <!-- Аватар (занимает 2 строки) -->
+        <GridLayout row="0" rowSpan="2" col="0" class="avatar-container">
+          <!-- Тень для аватара -->
+          <StackLayout class="avatar-shadow" />
+          <!-- Аватар -->
           <Image
-            row="0" col="0"
-            :src="post.avatarUrl"
-            width="38"
-            height="38"
+            :src="post.user.avatarUrl"
+            width="48"
+            height="48"
             class="avatar"
             stretch="aspectFill"
           />
-          <StackLayout row="0" col="0" class="avatar-ring" />
         </GridLayout>
-        <Label
-          col="1"
-          :text="post.username"
-          class="username"
-          verticalAlignment="center"
-        />
-      </GridLayout>
 
-      <!-- Разделитель -->
-      <StackLayout class="divider" />
+        <!-- Никнейм (1 строка, 1 колонка) -->
+        <Label
+          row="0" col="1"
+          :text="post.user.username"
+          class="username"
+          verticalAlignment="bottom"
+          :color="post.user.usernameColor"
+        />
+
+        <!-- Время (1 строка, 2 колонка) -->
+        <Label
+          row="0" col="2"
+          :text="post.timeAgo"
+          class="post-time"
+          verticalAlignment="bottom"
+        />
+
+        <!-- Первый разделитель (2 строка, 1-2 колонки) -->
+        <StackLayout row="1" col="1" colSpan="2" class="divider first-divider" />
+      </GridLayout>
 
       <!-- Текст поста -->
       <Label :text="post.text" class="post-text" textWrap="true" />
 
-      <!-- Футер: лайки + комментарии -->
-      <GridLayout columns="auto, auto, *" class="card-footer">
+      <!-- Второй разделитель -->
+      <StackLayout class="divider second-divider" />
+
+      <!-- Футер: лайки | комментарии | репост -->
+      <GridLayout columns="auto, auto, auto, auto, *" class="card-footer">
+
+        <!-- Лайки -->
         <StackLayout col="0" orientation="horizontal" class="action-btn" @tap="onLike">
           <Label :text="post.liked ? '❤️' : '🤍'" class="action-icon" />
           <Label :text="String(post.likes)" class="action-count" />
         </StackLayout>
-        <StackLayout col="1" orientation="horizontal" class="action-btn" marginLeft="16">
+
+        <!-- Вертикальный разделитель -->
+        <StackLayout col="1" class="vertical-divider" />
+
+        <!-- Комментарии -->
+        <StackLayout col="2" orientation="horizontal" class="action-btn">
           <Label text="💬" class="action-icon" />
           <Label :text="String(post.comments)" class="action-count" />
+          <Label text=" Комментариев" class="action-label" />
+        </StackLayout>
+
+        <!-- Вертикальный разделитель -->
+        <StackLayout col="3" class="vertical-divider" />
+
+        <!-- Репост -->
+        <StackLayout col="4" orientation="horizontal" class="action-btn">
+          <Label text="🔄" class="action-icon" />
+          <Label text="Репост" class="action-label" />
         </StackLayout>
       </GridLayout>
 
@@ -98,62 +132,92 @@ export default defineComponent({
 
 <style scoped>
 .card-wrapper {
-  margin: 8 12;
+  margin: 2 4;
   border-radius: 14;
 }
 
-.card-border {
+/* Тень */
+.card-shadow {
   border-radius: 14;
-  background: linear-gradient(#8B4513, #5C2E00);
-  border-width: 2;
-  border-color: #3a1a00;
+  background-color: #000000;
+  opacity: 0.25;
+  margin-top: 5;
+  margin-bottom: 0;
+  margin-left: 1;
+  margin-right: 1;
 }
 
+/* Основная карточка */
 .card {
   border-radius: 12;
-  background: linear-gradient(#FFF8F0, #FFE8CC);
+  background-color: #FDEDD9;
   padding: 12;
 }
 
 .card-header {
-  margin-bottom: 8;
+  margin-bottom: 4;
+}
+
+/* Аватар */
+.avatar-container {
+  width: 52;
+  height: 52;
+  margin-right: 10;
+}
+
+.avatar-shadow {
+  border-radius: 24;
+  background-color: #000000;
+  opacity: 0.25;
+  width: 51;
+  height: 50;
+  margin-top: 2;
 }
 
 .avatar {
-  border-radius: 19;
-  width: 38;
-  height: 38;
-}
-
-.avatar-ring {
-  border-radius: 21;
-  width: 42;
-  height: 42;
-  border-width: 2;
-  border-color: #c87800;
-  background-color: transparent;
-  margin: -2;
+  border-radius: 22;
+  width: 48;
+  height: 48;
 }
 
 .username {
-  font-size: 14;
+  font-size: 17;
   font-weight: bold;
   color: #3a1a00;
-  margin-left: 10;
+  padding-bottom: 0;
 }
 
+.post-time {
+  font-size: 12;
+  color: #584F41;
+  padding-right: 4;
+  padding-bottom: 5;
+  margin-top: -20;
+}
+
+/* Разделители */
 .divider {
-  height: 1;
-  background-color: #d4956a;
+  border-radius: 5;
+  height: 3;
+  background-color: #BCA68A;
+  opacity: 0.7;
+
+}
+
+.first-divider {
+  margin-top: 4;
   margin-bottom: 8;
-  opacity: 0.5;
+}
+
+.second-divider {
+  margin-top: 10;
+  margin-bottom: -2;
 }
 
 .post-text {
-  font-size: 13;
-  color: #4a2800;
+  font-size: 14;
+  color: #3A342E;
   line-height: 18;
-  margin-bottom: 10;
 }
 
 .card-footer {
@@ -162,16 +226,33 @@ export default defineComponent({
 
 .action-btn {
   verticalAlignment: center;
+  padding: 4 0;
 }
 
 .action-icon {
   font-size: 16;
-  margin-right: 5;
+  margin-right: 4;
 }
 
 .action-count {
-  font-size: 13;
-  color: #7a4a00;
+  font-size: 12;
+  color: #555A5F;
   verticalAlignment: center;
+}
+
+.action-label {
+  font-size: 13;
+  color: #584F41;
+  text-align: center;
+}
+
+/* Вертикальный разделитель */
+.vertical-divider {
+  width: 3;
+  border-radius: 5;
+  height: 20;
+  opacity: 0.7;
+  background-color: #BCA68A;
+  margin: 0 12;
 }
 </style>

@@ -21,21 +21,37 @@
           </GridLayout>
         </StackLayout>
 
-        <!-- Заголовок -->
+        <!-- Заголовок с градиентным фоном -->
         <StackLayout class="feed-header">
-          <Label text="Новостная лента" class="feed-title" />
+          <Label
+            text="Новостная лента"
+            class="feed-title"
+            ref="titleLabel"
+          />
         </StackLayout>
 
-        <!-- Посты -->
-        <StackLayout class="feed-bg">
-          <StackLayout paddingTop="10" paddingBottom="10">
-            <PostCard
-              v-for="post in posts"
-              :key="post.id"
-              :post="post"
-              @like="toggleLike"
-            />
+        <!-- Контейнер ленты с объёмным эффектом -->
+        <GridLayout rows="*" class="feed-container" margin="0" padding="0">
+          <!-- Внешний слой (самый большой) -->
+          <StackLayout row="0" class="feed-bg-outer" />
+
+          <!-- Внутренний слой (на 5px меньше среднего = 10px от внешнего) -->
+          <StackLayout row="0" class="feed-bg-inner" margin="5">
+            <!-- Контент ленты -->
+            <StackLayout paddingTop="-2" paddingBottom="0">
+              <PostCard
+                v-for="post in posts"
+                :key="post.id"
+                :post="post"
+                @like="toggleLike"
+              />
+            </StackLayout>
           </StackLayout>
+        </GridLayout>
+
+        <!-- Нижний градиентный элемент -->
+        <StackLayout class="feed-footer">
+          <Label text="" class="footer-text" />
         </StackLayout>
 
       </StackLayout>
@@ -45,7 +61,7 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import { isAndroid } from "@nativescript/core";
+import { isAndroid, View } from "@nativescript/core";
 import PostCard from "../../components/PostCard.vue";
 import StarBadge from "../../components/StarBadge.vue";
 import { mockPosts } from "../../mocks/posts";
@@ -71,6 +87,10 @@ export default defineComponent({
           .getDisplayMetrics().density;
         this.statusBarHeight = Math.ceil(heightPx / density) + 15;
       }
+
+      setTimeout(() => {
+        this.styleTitleText();
+      }, 150);
     }
   },
   methods: {
@@ -79,6 +99,91 @@ export default defineComponent({
       if (!post) return;
       post.liked = !post.liked;
       post.likes += post.liked ? 1 : -1;
+    },
+
+    styleTitleText(): void {
+      if (!isAndroid) return;
+
+      // Получаем Label
+      const labelRef = this.$refs["titleLabel"];
+      const labelView: View | null = labelRef
+        ? ((Array.isArray(labelRef) ? labelRef[0] : labelRef) as any)?.nativeView ?? null
+        : null;
+      if (!labelView?.android) return;
+
+      const context = labelView.android.getContext();
+      const density = context.getResources().getDisplayMetrics().density;
+      const strokeWidth = 4 * density;
+      const shadowDy = 4 * density;
+
+      const StrokeTextView = (android as any).widget.TextView.extend({
+        onDraw(canvas: any) {
+          const paint = this.getPaint();
+
+          this.setLayerType(1, null);
+
+          // Тень
+          paint.setShadowLayer(0.01, 0, shadowDy, android.graphics.Color.BLACK);
+          paint.setStyle(android.graphics.Paint.Style.FILL);
+          paint.setStrokeWidth(0);
+          this.setTextColor(android.graphics.Color.WHITE);
+          this.super.onDraw(canvas);
+
+          paint.clearShadowLayer();
+
+          // Обводка
+          paint.setStyle(android.graphics.Paint.Style.STROKE);
+          paint.setStrokeWidth(strokeWidth);
+          paint.setStrokeJoin(android.graphics.Paint.Join.ROUND);
+          paint.setStrokeCap(android.graphics.Paint.Cap.ROUND);
+          this.setTextColor(android.graphics.Color.BLACK);
+          this.super.onDraw(canvas);
+
+          // Белый текст
+          paint.setStyle(android.graphics.Paint.Style.FILL);
+          paint.setStrokeWidth(0);
+          this.setTextColor(android.graphics.Color.WHITE);
+          this.super.onDraw(canvas);
+        }
+      });
+
+      const newView = new StrokeTextView(context);
+      newView.setText(labelView.android.getText());
+      newView.setTypeface(labelView.android.getTypeface());
+      newView.setTextSize(0, labelView.android.getTextSize());
+      newView.setGravity(android.view.Gravity.CENTER);
+      newView.setLayerType(1, null);
+      newView.setPadding(
+        Math.ceil(strokeWidth),
+        Math.ceil(strokeWidth),
+        Math.ceil(strokeWidth),
+        Math.ceil(strokeWidth + shadowDy)
+      );
+
+      const lp = new android.view.ViewGroup.LayoutParams(
+        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+      );
+      newView.setLayoutParams(lp);
+
+      const parentView = labelView.android.getParent();
+      if (parentView) {
+        if (parentView.setClipChildren) parentView.setClipChildren(false);
+        if (parentView.setClipToPadding) parentView.setClipToPadding(false);
+        const index = parentView.indexOfChild(labelView.android);
+        parentView.removeView(labelView.android);
+        parentView.addView(newView, index);
+
+        // Отключаем clip на 5 уровней вверх
+        let p = parentView;
+        for (let i = 0; i < 5; i++) {
+          if (p) {
+            if (p.setClipChildren) p.setClipChildren(false);
+            if (p.setClipToPadding) p.setClipToPadding(false);
+            p = p.getParent?.();
+          }
+        }
+      }
     },
   },
 });
@@ -112,18 +217,60 @@ export default defineComponent({
 }
 
 .feed-header {
-  background-color: #5c3317;
-  padding: 10 14;
+  padding: 5 14;
+
+  /* Базовый градиент (работает) */
+  background-image: linear-gradient(
+    0deg,
+    #4a2a0a 0%,
+    #5c3317 20%,
+    #7a4a1a 40%,
+    #5c3317 60%,
+    #4a2a0a 80%,
+    #6b3f1a 100%
+  );
+}
+
+.feed-footer {
+  padding: 20 14;
+
+  /* Тот же градиент, что и в header */
+  background-image: linear-gradient(
+    0deg,
+    #4a2a0a 0%,
+    #5c3317 20%,
+    #7a4a1a 40%,
+    #5c3317 60%,
+    #4a2a0a 80%,
+    #6b3f1a 100%
+  );
 }
 
 .feed-title {
-  font-size: 16;
+  font-size: 22;
   font-weight: bold;
-  color: #ffdd55;
-  text-align: center;
+  color: #ffffff;
+  text-align: left;
 }
 
-.feed-bg {
+.footer-text {
+  height: 5;  /* Просто чтобы элемент имел высоту */
+}
+
+/* Контейнер для объёмного эффекта */
+.feed-container {
+  margin: 0;
+  padding: 0;
+}
+
+/* Внешний слой (самый большой) */
+.feed-bg-outer {
   background-color: #C9A37C;
+}
+
+/* Внутренний слой (контент) */
+.feed-bg-inner {
+  background-color: #E9CAA6;
+  border-radius: 15;
 }
 </style>
