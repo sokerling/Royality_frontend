@@ -27,6 +27,15 @@
         columns="*, 3, *, 3, *, 3, *, 3, *"
         class="bottom-bar"
       >
+        <!-- Подсветка на всю ширину (colSpan=9), чтобы не обрезалась -->
+        <StackLayout
+          ref="tabHighlight"
+          col="0"
+          colSpan="9"
+          class="tab-highlight"
+          horizontalAlignment="left"
+        />
+
         <template v-for="(tab, index) in tabs" :key="'tab-' + index">
           <StackLayout
             :col="index * 2"
@@ -64,7 +73,7 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import { Animation, View, isAndroid, CoreTypes } from "@nativescript/core";
+import { Animation, View, isAndroid, CoreTypes, Screen } from "@nativescript/core";
 import FeedTab from "./tabs/FeedTab.vue";
 import ProfileTab from "./tabs/ProfileTab.vue";
 import AppLabel from "../components/AppLabel.vue";
@@ -100,15 +109,13 @@ export default defineComponent({
     setTimeout(() => {
       this.disableClipping();
       this.applyBarState(this.selectedIndex, true);
-    }, 100);
+    }, 150); // Увеличили задержку, чтобы верстка точно прогрузилась
   },
   methods: {
     disableClipping(): void {
       if (!isAndroid) return;
 
-      const barRef = this.$refs["bottomBar"];
-      const barView: View | null = (barRef as any)?.nativeView;
-
+      const barView: View | null = (this.$refs["bottomBar"] as any)?.nativeView;
       if (barView?.android) {
         barView.android.setClipChildren(false);
         barView.android.setClipToPadding(false);
@@ -138,26 +145,62 @@ export default defineComponent({
       return (ref as any)?.[0]?.nativeView ?? (ref as any)?.nativeView ?? null;
     },
 
-    // Единый метод для анимации всего бара сразу
+    getTargetX(index: number, activeIndex: number): number {
+      const offset = 20;
+      if (index === activeIndex - 1) return -offset;
+      if (index === activeIndex + 1) return offset;
+      return 0;
+    },
+
     async applyBarState(activeIndex: number, instant = false): Promise<void> {
       const offset = 20;
       const animGroup: any[] = [];
+      const highlight = (this.$refs["tabHighlight"] as any)?.nativeView as View;
+      const barView = (this.$refs["bottomBar"] as any)?.nativeView as View;
 
+      if (highlight && barView) {
+        const density = Screen.mainScreen.scale;
+        const measuredWidth = barView.getMeasuredWidth();
+        const totalWidth = measuredWidth > 0 ? measuredWidth / density : Screen.mainScreen.widthDIPs;
+
+        if (totalWidth > 0) {
+          const tabWidth = (totalWidth - 12) / 5;
+
+          // Рассчитываем расширение (подсветка должна закрывать всё пространство между раздвинутыми разделителями)
+          const leftExpansion = activeIndex > 0 ? offset : 0;
+          const rightExpansion = activeIndex < this.tabs.length - 1 ? offset : 0;
+
+          const finalWidth = tabWidth + leftExpansion + rightExpansion;
+          const targetX = activeIndex * (tabWidth + 3) - leftExpansion;
+
+          if (instant) {
+            highlight.width = finalWidth;
+            highlight.translateX = targetX;
+          } else {
+            animGroup.push({
+              target: highlight,
+              width: finalWidth,
+              translate: { x: targetX, y: 0 },
+              duration: 250,
+              curve: CoreTypes.AnimationCurve.easeInOut
+            });
+          }
+        }
+      }
+
+      // Анимируем вкладки
       for (let i = 0; i < this.tabs.length; i++) {
         const view = this.getTabView(i);
         if (!view) continue;
 
         let targetScale = 1;
-        let targetX = 0;
+        let targetX = this.getTargetX(i, activeIndex);
         let targetY = 0;
 
         if (i === activeIndex) {
           targetScale = 1.2;
           targetY = -10;
-        } else if (i === activeIndex - 1) {
-          targetX = -offset;
-        } else if (i === activeIndex + 1) {
-          targetX = offset;
+          targetX = 0;
         }
 
         if (instant) {
@@ -183,6 +226,7 @@ export default defineComponent({
         }
       }
 
+      // Анимируем разделители
       for (let i = 0; i < this.tabs.length - 1; i++) {
         const sep = this.getSepView(i);
         if (!sep) continue;
@@ -204,8 +248,7 @@ export default defineComponent({
       }
 
       if (animGroup.length > 0) {
-        const animation = new Animation(animGroup);
-        await animation.play();
+        await new Animation(animGroup).play();
 
         if (!instant) {
           const activeView = this.getTabView(activeIndex);
@@ -222,19 +265,13 @@ export default defineComponent({
     async shakeTab(index: number): Promise<void> {
       const view = this.getTabView(index);
       if (!view) return;
-
-      const offset = 20;
-      let targetX = 0;
-      if (index === this.selectedIndex - 1) targetX = -offset;
-      else if (index === this.selectedIndex + 1) targetX = offset;
-
+      const basePosX = this.getTargetX(index, this.selectedIndex);
       const duration = 60;
-      // Тряска относительно целевой позиции X
-      await view.animate({ translate: { x: targetX - 6, y: 0 }, duration });
-      await view.animate({ translate: { x: targetX + 6, y: 0 }, duration });
-      await view.animate({ translate: { x: targetX - 4, y: 0 }, duration });
-      await view.animate({ translate: { x: targetX + 4, y: 0 }, duration });
-      await view.animate({ translate: { x: targetX, y: 0 }, duration });
+      await view.animate({ translate: { x: basePosX - 6, y: 0 }, duration });
+      await view.animate({ translate: { x: basePosX + 6, y: 0 }, duration });
+      await view.animate({ translate: { x: basePosX - 4, y: 0 }, duration });
+      await view.animate({ translate: { x: basePosX + 4, y: 0 }, duration });
+      await view.animate({ translate: { x: basePosX, y: 0 }, duration });
     },
 
     async showToastAnimated(): Promise<void> {
@@ -243,7 +280,7 @@ export default defineComponent({
       await this.$nextTick();
       const ref = this.$refs["toast_" + id];
       const view: View | null = (ref as any)?.[0]?.nativeView ?? (ref as any)?.nativeView ?? null;
-      if (!view) { this.toasts = this.toasts.filter(t => t.id !== id); return; }
+      if (!view) return;
       view.opacity = 0; view.translateY = 20;
       await view.animate({ opacity: 1, translate: { x: 0, y: 0 }, duration: 400, curve: CoreTypes.AnimationCurve.easeOut });
       await new Promise(resolve => setTimeout(resolve, 1500));
@@ -279,6 +316,12 @@ export default defineComponent({
   height: 70;
 }
 
+.tab-highlight {
+  /* Градиент снизу вверх, без обводки и отступов */
+  background: linear-gradient(to top, rgba(0, 150, 230, 0.4) 0%, rgba(0, 150, 230, 0) 100%);
+  height: 100%;
+}
+
 .tab-item {
   padding: 4 0;
 }
@@ -294,7 +337,6 @@ export default defineComponent({
   font-size: 24;
   text-align: center;
   color: #ffffff;
-  opacity: 1 !important;
 }
 
 .tab-title {
@@ -302,7 +344,6 @@ export default defineComponent({
   color: #B0B7C1;
   text-align: center;
   margin-top: 2;
-  opacity: 1 !important;
 }
 
 .tab-title--active {
