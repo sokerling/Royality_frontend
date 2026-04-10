@@ -22,13 +22,13 @@
                             horizontalAlignment="left" verticalAlignment="center"
                             @loaded="disableClipping">
                             <Image
-                              src="~/assets/avatars/avatar3.jpg"
+                              :src="avatarSource"
                               class="avatar-image"
                               stretch="aspectFill"
                             />
                           </GridLayout>
 
-                          <Label text="Клешня" class="nickname" row="0" col="1" />
+                          <Label :text="profileName" class="nickname" row="0" col="1" />
                           
                           <GridLayout columns="*" rows="*" class="level-container" row="1" col="1" @loaded="disableClipping">
                             <GridLayout row="0" col="0" columns="*" class="xp-bar-bg" marginLeft="20" horizontalAlignment="left">
@@ -37,7 +37,7 @@
                             </GridLayout>
                             <StarBadge
                               row="0" col="0"
-                              :level="9"
+                              :level="profileLevel"
                               :size="32"
                               horizontalAlignment="left"
                               verticalAlignment="center"
@@ -80,7 +80,7 @@
                                 <GridLayout columns="auto, *" class="stat-input-content" verticalAlignment="middle">
                                   <!-- Иконка Постов -->
                                   <Image src="~/assets/posts.png" col="0" class="stat-image-icon" stretch="aspectFit" />
-                                  <Label text="67" col="1" class="stat-value" />
+                                  <Label :text="String(postsCount)" col="1" class="stat-value" />
                                 </GridLayout>
                               </GridLayout>
                             </StackLayout>
@@ -92,7 +92,7 @@
                                 <GridLayout columns="auto, *" class="stat-input-content" verticalAlignment="middle">
                                   <!-- Иконка Подписчиков -->
                                   <Image src="~/assets/podpis.png" col="0" class="stat-image-icon" stretch="aspectFit" />
-                                  <Label text="52" col="1" class="stat-value" />
+                                  <Label :text="String(followersCount)" col="1" class="stat-value" />
                                 </GridLayout>
                               </GridLayout>
                             </StackLayout>
@@ -111,7 +111,7 @@
                       <GridLayout class="about-me-content-box" @loaded="applyInsetShadowLarge">
                         <ScrollView marginTop="10">
                           <Label 
-                            text="Играю в клешку с 2к16. 10к кубков. Активно участвую в туриках. Начинаю постить интересные новости и необычные колоды." 
+                            :text="profileBio" 
                             class="about-me-text" 
                             textWrap="true" 
                           />
@@ -144,8 +144,14 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { isAndroid } from "@nativescript/core";
+import { action, alert, confirm, prompt } from "@nativescript/core/ui/dialogs";
 import StarBadge from "../../components/StarBadge.vue";
 import HexagonHeader from "../../components/HexagonHeader.vue";
+import Welcome from "../Welcome.vue";
+import { getMyProfile, updateMyProfile, uploadMyAvatar } from "../../services/profile";
+import { clearSession, sessionStore } from "../../stores/session";
+import { pickImageFromDevice } from "../../utils/imagePicker";
+import { normalizeBackendUrl } from "../../utils/backendUrl";
 
 export default defineComponent({
   components: {
@@ -155,9 +161,146 @@ export default defineComponent({
   data() {
     return {
       settingsBtnPressed: false,
+      profileName: "Профиль",
+      profileBio: "Добавьте информацию о себе.",
+      profileLevel: 1,
+      postsCount: 0,
+      followersCount: 0,
+      avatarSource: "",
     };
   },
+  async mounted() {
+    await this.refreshProfile();
+  },
   methods: {
+    applyProfile(profile: any): void {
+      sessionStore.profile = profile;
+      this.profileName = profile.nickname || "Профиль";
+      this.profileBio = profile.bio || "Добавьте информацию о себе.";
+      this.profileLevel = profile.level || 1;
+      this.postsCount = profile.posts_count || 0;
+      this.followersCount = profile.followers_count || 0;
+      this.avatarSource = normalizeBackendUrl(profile.avatar_url);
+    },
+    async refreshProfile(): Promise<void> {
+      if (!sessionStore.token) return;
+      try {
+        const profile = await getMyProfile(sessionStore.token);
+        this.applyProfile(profile);
+      } catch (error) {
+        console.log("profile load failed", error);
+      }
+    },
+    async openSettingsMenu(): Promise<void> {
+      const selected = await action("Настройки", "Отмена", [
+        "Обновить профиль",
+        "Обновить аватар",
+        "Обновить данные",
+        "Выйти из аккаунта",
+      ]);
+      if (selected === "Обновить аватар") {
+        await this.changeAvatar();
+        return;
+      }
+
+
+      if (selected === "Обновить профиль") {
+        await this.editProfile();
+        return;
+      }
+
+      if (selected === "Обновить данные") {
+        await this.refreshProfile();
+        return;
+      }
+
+      if (selected === "Выйти из аккаунта") {
+        const approved = await confirm({
+          title: "Выход",
+          message: "Выйти из текущего аккаунта?",
+          okButtonText: "Да",
+          cancelButtonText: "Нет",
+        });
+        if (!approved) return;
+        clearSession();
+        this.$navigateTo(Welcome, { clearHistory: true });
+      }
+    },
+    async editProfile(): Promise<void> {
+      if (!sessionStore.token || !sessionStore.profile) {
+        await alert({ title: "Профиль", message: "Сначала загрузите профиль.", okButtonText: "OK" });
+        return;
+      }
+
+      const nicknameResult = await prompt({
+        title: "Никнейм",
+        message: "Введите новый никнейм",
+        defaultText: this.profileName,
+        okButtonText: "Далее",
+        cancelButtonText: "Отмена",
+      });
+      if (!nicknameResult.result) return;
+
+      const bioResult = await prompt({
+        title: "О себе",
+        message: "Введите описание",
+        defaultText: this.profileBio,
+        okButtonText: "Далее",
+        cancelButtonText: "Отмена",
+      });
+      if (!bioResult.result) return;
+
+      const levelResult = await prompt({
+        title: "Уровень",
+        message: "Введите уровень (1..100)",
+        defaultText: String(this.profileLevel),
+        okButtonText: "Сохранить",
+        cancelButtonText: "Отмена",
+      });
+      if (!levelResult.result) return;
+
+      const nextLevel = Number(levelResult.text);
+      if (!Number.isFinite(nextLevel) || nextLevel < 1 || nextLevel > 100) {
+        await alert({ title: "Ошибка", message: "Уровень должен быть в диапазоне 1..100.", okButtonText: "OK" });
+        return;
+      }
+
+      try {
+        const profile = await updateMyProfile(sessionStore.token, {
+          nickname: nicknameResult.text.trim(),
+          bio: bioResult.text.trim() || null,
+          level: Math.round(nextLevel),
+          avatar_url: sessionStore.profile.avatar_url,
+        });
+        this.applyProfile(profile);
+      } catch (error) {
+        await alert({
+          title: "Ошибка",
+          message: error instanceof Error ? error.message : "Не удалось обновить профиль.",
+          okButtonText: "OK",
+        });
+      }
+    },
+    async changeAvatar(): Promise<void> {
+      if (!sessionStore.token) return;
+      try {
+        const picked = await pickImageFromDevice();
+        if (!picked) return;
+
+        await uploadMyAvatar(sessionStore.token, {
+          uri: picked.uri,
+          name: picked.name,
+          type: picked.type,
+        });
+        await this.refreshProfile();
+      } catch (error) {
+        await alert({
+          title: "Ошибка",
+          message: error instanceof Error ? error.message : "Не удалось обновить аватар.",
+          okButtonText: "OK",
+        });
+      }
+    },
     onSettingsTouch(args: any) {
       if (!isAndroid) return;
       const action = args.action;
@@ -168,7 +311,7 @@ export default defineComponent({
         this.settingsBtnPressed = false;
         this.redrawSettingsButton();
         if (action === "up") {
-          console.log("Settings tapped!");
+          this.openSettingsMenu();
         }
       }
     },

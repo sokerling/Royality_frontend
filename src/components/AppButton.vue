@@ -66,6 +66,15 @@ export default defineComponent({
   },
   emits: ["tap"],
   methods: {
+    isDownAction(action: unknown): boolean {
+      return action === TouchAction.down || action === "down";
+    },
+    isUpAction(action: unknown): boolean {
+      return action === TouchAction.up || action === "up";
+    },
+    isCancelAction(action: unknown): boolean {
+      return action === TouchAction.cancel || action === "cancel";
+    },
     getWrapperView(): View | null {
       const el = this.$el as any;
       return el?.nativeView ?? null;
@@ -102,14 +111,11 @@ export default defineComponent({
     },
 
     onTouch(event: any): void {
-      if (event.action === TouchAction.down) {
+      if (this.isDownAction(event.action)) {
         this.animatePressDown();
-      } else if (
-        event.action === TouchAction.up ||
-        event.action === TouchAction.cancel
-      ) {
+      } else if (this.isUpAction(event.action) || this.isCancelAction(event.action)) {
         this.animatePressUp().then(() => {
-          if (event.action === TouchAction.up) {
+          if (this.isUpAction(event.action)) {
             this.$emit("tap");
           }
         });
