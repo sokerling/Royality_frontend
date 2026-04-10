@@ -3,12 +3,14 @@
     <GridLayout rows="2*, auto">
 
       <!-- Верхние две трети — заголовок -->
-      <Label
+      <AppLabel
         row="0"
         text="Добро пожаловать в сообщество по Clash Royale"
         class="h1"
         verticalAlignment="center"
-        textWrap="true"
+        textAlignment="center"
+        :strokeWidth="8"
+        :shadowOffset="6"
       />
 
       <!-- Нижняя треть — кнопки -->
@@ -26,10 +28,11 @@ import { defineComponent } from "vue";
 import Home from "./Home.vue";
 import Register from "./Register.vue";
 import AppButton from "../components/AppButton.vue";
+import AppLabel from "../components/AppLabel.vue";
 
 export default defineComponent({
   name: "Welcome",
-  components: { AppButton },
+  components: { AppButton, AppLabel },
   methods: {
     goToFeed(): void {
       this.$navigateTo(Home);
@@ -54,15 +57,13 @@ export default defineComponent({
 }
 
 .h1 {
-  font-size: 24;
+  font-size: 28;
   font-weight: bold;
   color: #ffffff;
-  text-align: center;
-  margin-bottom: 50;
+  margin: 0 30; /* Даем отступы от краев экрана */
 }
 
 .button-row {
   align-items: center;
-  gap: 16;
 }
 </style>

@@ -27,14 +27,12 @@
       verticalAlignment="center"
       horizontalAlignment="center"
       :class="type === 'secondary' ? 'layer-4-sec' : 'layer-4'"
-      ref="textContainer"
     >
-      <Label
+      <AppLabel
         :text="text"
         class="btn-text"
         verticalAlignment="center"
         horizontalAlignment="center"
-        ref="btnLabel"
       />
     </StackLayout>
   </GridLayout>
@@ -42,12 +40,16 @@
 
 <script lang="ts">
 import { defineComponent, PropType } from "vue";
-import { Animation, TouchAction, View, isAndroid } from "@nativescript/core";
+import { Animation, TouchAction, View } from "@nativescript/core";
+import AppLabel from "./AppLabel.vue";
 
 type ButtonType = "arena" | "secondary";
 
 export default defineComponent({
   name: "AppButton",
+  components: {
+    AppLabel
+  },
   props: {
     text: {
       type: String as PropType<string>,
@@ -63,109 +65,6 @@ export default defineComponent({
     },
   },
   emits: ["tap"],
-  mounted() {
-    if (!isAndroid) return;
-    setTimeout(() => {
-
-      // Отключаем clip на враппере и вверх по дереву
-      const wrapperRef = this.$refs["wrapper"];
-      const wrapperView: View | null = wrapperRef
-        ? ((Array.isArray(wrapperRef) ? wrapperRef[0] : wrapperRef) as any)?.nativeView ?? null
-        : null;
-      if (wrapperView?.android) {
-        let p = wrapperView.android;
-        for (let i = 0; i < 6; i++) {
-          if (p) {
-            if (p.setClipChildren) p.setClipChildren(false);
-            if (p.setClipToPadding) p.setClipToPadding(false);
-            p = p.getParent?.();
-          }
-        }
-      }
-
-      // Получаем Label
-      const labelRef = this.$refs["btnLabel"];
-      const labelView: View | null = labelRef
-        ? ((Array.isArray(labelRef) ? labelRef[0] : labelRef) as any)?.nativeView ?? null
-        : null;
-      if (!labelView?.android) return;
-
-      const context = labelView.android.getContext();
-      const density = context.getResources().getDisplayMetrics().density;
-      const strokeWidth = 4 * density;
-      const shadowDy = 4 * density;
-
-      const StrokeTextView = (android as any).widget.TextView.extend({
-        onDraw(canvas: any) {
-          const paint = this.getPaint();
-
-          this.setLayerType(1, null);
-
-          // Тень
-          paint.setShadowLayer(0.01, 0, shadowDy, android.graphics.Color.BLACK);
-          paint.setStyle(android.graphics.Paint.Style.FILL);
-          paint.setStrokeWidth(0);
-          this.setTextColor(android.graphics.Color.WHITE);
-          this.super.onDraw(canvas);
-
-          paint.clearShadowLayer();
-
-          // Обводка
-          paint.setStyle(android.graphics.Paint.Style.STROKE);
-          paint.setStrokeWidth(strokeWidth);
-          paint.setStrokeJoin(android.graphics.Paint.Join.ROUND);
-          paint.setStrokeCap(android.graphics.Paint.Cap.ROUND);
-          this.setTextColor(android.graphics.Color.BLACK);
-          this.super.onDraw(canvas);
-
-          // Белый текст
-          paint.setStyle(android.graphics.Paint.Style.FILL);
-          paint.setStrokeWidth(0);
-          this.setTextColor(android.graphics.Color.WHITE);
-          this.super.onDraw(canvas);
-        }
-      });
-
-      const newView = new StrokeTextView(context);
-      newView.setText(labelView.android.getText());
-      newView.setTypeface(labelView.android.getTypeface());
-      newView.setTextSize(0, labelView.android.getTextSize());
-      newView.setGravity(android.view.Gravity.CENTER);
-      newView.setLayerType(1, null);
-      newView.setPadding(
-        Math.ceil(strokeWidth),
-        Math.ceil(strokeWidth),
-        Math.ceil(strokeWidth),
-        Math.ceil(strokeWidth + shadowDy)
-      );
-
-      const lp = new android.view.ViewGroup.LayoutParams(
-        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-      );
-      newView.setLayoutParams(lp);
-
-      const parentView = labelView.android.getParent();
-      if (parentView) {
-        if (parentView.setClipChildren) parentView.setClipChildren(false);
-        if (parentView.setClipToPadding) parentView.setClipToPadding(false);
-        const index = parentView.indexOfChild(labelView.android);
-        parentView.removeView(labelView.android);
-        parentView.addView(newView, index);
-
-        // Отключаем clip на 5 уровней вверх
-        let p = parentView;
-        for (let i = 0; i < 5; i++) {
-          if (p) {
-            if (p.setClipChildren) p.setClipChildren(false);
-            if (p.setClipToPadding) p.setClipToPadding(false);
-            p = p.getParent?.();
-          }
-        }
-      }
-
-    }, 150);
-  },
   methods: {
     getWrapperView(): View | null {
       const el = this.$el as any;

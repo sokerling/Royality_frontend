@@ -32,7 +32,7 @@ export default defineComponent({
       const px = this.size * density;
       const levelValue = this.level;
 
-      const CustomView = android.view.View.extend({
+      const CustomView = (android.view.View as any).extend({
         onDraw(canvas: any) {
           const cx = px / 2;
           const cy = px / 2;

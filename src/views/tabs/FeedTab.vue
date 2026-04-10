@@ -21,21 +21,37 @@
           </GridLayout>
         </StackLayout>
 
-        <!-- Заголовок -->
+        <!-- Заголовок с градиентным фоном -->
         <StackLayout class="feed-header">
-          <Label text="Новостная лента" class="feed-title" />
+          <AppLabel
+            text="Новостная лента"
+            class="feed-title"
+            textAlignment="left"
+          />
         </StackLayout>
 
-        <!-- Посты -->
-        <StackLayout class="feed-bg">
-          <StackLayout paddingTop="10" paddingBottom="10">
-            <PostCard
-              v-for="post in posts"
-              :key="post.id"
-              :post="post"
-              @like="toggleLike"
-            />
+        <!-- Контейнер ленты с объёмным эффектом -->
+        <GridLayout rows="*" class="feed-container" margin="0" padding="0">
+          <!-- Внешний слой (самый большой) -->
+          <StackLayout row="0" class="feed-bg-outer" />
+
+          <!-- Внутренний слой (на 5px меньше среднего = 10px от внешнего) -->
+          <StackLayout row="0" class="feed-bg-inner" margin="5">
+            <!-- Контент ленты -->
+            <StackLayout paddingTop="-2" paddingBottom="0">
+              <PostCard
+                v-for="post in posts"
+                :key="post.id"
+                :post="post"
+                @like="toggleLike"
+              />
+            </StackLayout>
           </StackLayout>
+        </GridLayout>
+
+        <!-- Нижний градиентный элемент -->
+        <StackLayout class="feed-footer">
+          <Label text="" class="footer-text" />
         </StackLayout>
 
       </StackLayout>
@@ -48,12 +64,13 @@ import { defineComponent } from "vue";
 import { isAndroid } from "@nativescript/core";
 import PostCard from "../../components/PostCard.vue";
 import StarBadge from "../../components/StarBadge.vue";
+import AppLabel from "../../components/AppLabel.vue";
 import { mockPosts } from "../../mocks/posts";
 import type { Post } from "../../types/post";
 
 export default defineComponent({
   name: "FeedTab",
-  components: { PostCard, StarBadge },
+  components: { PostCard, StarBadge, AppLabel },
   data() {
     return {
       posts: mockPosts.map((p) => ({ ...p })) as Post[],
@@ -112,18 +129,59 @@ export default defineComponent({
 }
 
 .feed-header {
-  background-color: #5c3317;
-  padding: 10 14;
+  padding: 5 14;
+
+  /* Базовый градиент (работает) */
+  background-image: linear-gradient(
+    0deg,
+    #4a2a0a 0%,
+    #5c3317 20%,
+    #7a4a1a 40%,
+    #5c3317 60%,
+    #4a2a0a 80%,
+    #6b3f1a 100%
+  );
+}
+
+.feed-footer {
+  padding: 20 14;
+
+  /* Тот же градиент, что и в header */
+  background-image: linear-gradient(
+    0deg,
+    #4a2a0a 0%,
+    #5c3317 20%,
+    #7a4a1a 40%,
+    #5c3317 60%,
+    #4a2a0a 80%,
+    #6b3f1a 100%
+  );
 }
 
 .feed-title {
-  font-size: 16;
+  font-size: 22;
   font-weight: bold;
-  color: #ffdd55;
-  text-align: center;
+  color: #ffffff;
 }
 
-.feed-bg {
+.footer-text {
+  height: 5;  /* Просто чтобы элемент имел высоту */
+}
+
+/* Контейнер для объёмного эффекта */
+.feed-container {
+  margin: 0;
+  padding: 0;
+}
+
+/* Внешний слой (самый большой) */
+.feed-bg-outer {
   background-color: #C9A37C;
+}
+
+/* Внутренний слой (контент) */
+.feed-bg-inner {
+  background-color: #E9CAA6;
+  border-radius: 15;
 }
 </style>
