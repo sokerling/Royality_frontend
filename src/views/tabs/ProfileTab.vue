@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <GridLayout backgroundColor="transparent">
     <GridLayout height="100" class="main-bg-header" verticalAlignment="top" />
 
@@ -30,41 +30,31 @@
 
                           <Label :text="profileName" class="nickname" row="0" col="1" />
                           
-                          <GridLayout columns="*" rows="*" class="level-container" row="1" col="1" @loaded="disableClipping">
-                            <GridLayout row="0" col="0" columns="*" class="xp-bar-bg" marginLeft="20" horizontalAlignment="left">
-                              <StackLayout col="0" class="xp-bar-fill" horizontalAlignment="left" />
-                              <Label col="0" text="50 / 100" class="xp-text" horizontalAlignment="center" verticalAlignment="center" />
-                            </GridLayout>
-                            <StarBadge
-                              row="0" col="0"
-                              :level="profileLevel"
-                              :size="32"
-                              horizontalAlignment="left"
-                              verticalAlignment="center"
-                              marginTop="-4"
-                              @loaded="disableClippingDeep"
-                            />
-                          </GridLayout>
+                          <UserLevelBar
+                            class="level-container"
+                            row="1"
+                            col="1"
+                            :level="profileLevel"
+                            :currentXp="levelProgressCurrent"
+                            :requiredXp="levelProgressRequired"
+                            :compact="true"
+                          />
 
-                          <!-- Кнопка настроек -->
-                          <ContentView 
-                            ref="settingsBtn"
-                            row="0" col="2" 
-                            width="38" 
-                            height="42"
-                            horizontalAlignment="right" 
+                          <!-- Settings button -->
+                          <SettingsButton
+                            row="0"
+                            col="2"
+                            horizontalAlignment="right"
                             verticalAlignment="top"
                             marginTop="2"
                             marginRight="2"
-                            @loaded="drawSettingsButton"
-                            @touch="onSettingsTouch"
+                            @tap="onSettingsButtonTap"
                           />
                         </GridLayout>
                       </GridLayout>
                     </GridLayout>
                   </GridLayout>
                 </GridLayout>
-
                 <!-- Stats -->
                 <GridLayout class="stats-outer-shadow" @loaded="disableClipping">
                   <GridLayout class="stats-outer-frame" @loaded="disableClipping">
@@ -72,31 +62,25 @@
                       <GridLayout class="stats-bg-orange" @loaded="disableClipping">
                         <GridLayout class="stats-bg-blue" @loaded="disableClipping">
                           <GridLayout columns="*, *" @loaded="disableClipping">
-                            
-                            <!-- Посты -->
                             <StackLayout col="0" marginRight="5" @loaded="disableClipping">
-                              <Label text="Посты" class="stat-label" />
+                              <Label :text="ui.postsLabel" class="stat-label" />
                               <GridLayout class="stat-input-box" @loaded="applyInsetShadow">
                                 <GridLayout columns="auto, *" class="stat-input-content" verticalAlignment="middle">
-                                  <!-- Иконка Постов -->
                                   <Image src="~/assets/posts.png" col="0" class="stat-image-icon" stretch="aspectFit" />
                                   <Label :text="String(postsCount)" col="1" class="stat-value" />
                                 </GridLayout>
                               </GridLayout>
                             </StackLayout>
 
-                            <!-- Подписчики -->
                             <StackLayout col="1" marginLeft="5" @loaded="disableClipping">
-                              <Label text="Подписчики" class="stat-label" />
+                              <Label :text="ui.followersLabel" class="stat-label" />
                               <GridLayout class="stat-input-box" @loaded="applyInsetShadow">
                                 <GridLayout columns="auto, *" class="stat-input-content" verticalAlignment="middle">
-                                  <!-- Иконка Подписчиков -->
                                   <Image src="~/assets/podpis.png" col="0" class="stat-image-icon" stretch="aspectFit" />
                                   <Label :text="String(followersCount)" col="1" class="stat-value" />
                                 </GridLayout>
                               </GridLayout>
                             </StackLayout>
-
                           </GridLayout>
                         </GridLayout>
                       </GridLayout>
@@ -121,7 +105,7 @@
                   </GridLayout>
                   
                   <HexagonHeader 
-                    text="Обо мне" 
+                    text="Обо мне"
                     :width="330" 
                     :height="64" 
                     :sharpness="0.5"
@@ -138,35 +122,218 @@
         </StackLayout>
       </StackLayout>
     </ScrollView>
+
+    <GridLayout
+      v-if="isSettingsMenuMounted"
+      ref="settingsOverlay"
+      class="settings-overlay"
+    >
+      <StackLayout class="settings-overlay-backdrop" @tap="closeSettingsMenu" />
+      <StackLayout
+        ref="settingsPanel"
+        class="settings-menu-shell"
+        verticalAlignment="center"
+        horizontalAlignment="center"
+      >
+        <GridLayout class="settings-menu-outer">
+          <StackLayout class="settings-menu-inner">
+            <Label :text="ui.settingsTitle" class="settings-menu-title" />
+            <AppButton
+              :text="ui.settingsEditProfile"
+              type="secondary"
+              compact
+              class="settings-action-btn"
+              horizontalAlignment="center"
+              @tap="onSettingsActionTap('edit')"
+            />
+            <AppButton
+              :text="ui.settingsChangeAvatar"
+              type="secondary"
+              compact
+              class="settings-action-btn"
+              horizontalAlignment="center"
+              @tap="onSettingsActionTap('avatar')"
+            />
+            <AppButton
+              :text="ui.settingsRefresh"
+              type="secondary"
+              compact
+              class="settings-action-btn"
+              horizontalAlignment="center"
+              @tap="onSettingsActionTap('refresh')"
+            />
+            <AppButton
+              :text="ui.settingsLogout"
+              type="arena"
+              compact
+              class="settings-action-btn"
+              horizontalAlignment="center"
+              @tap="onSettingsActionTap('logout')"
+            />
+          </StackLayout>
+        </GridLayout>
+      </StackLayout>
+    </GridLayout>
+
+    <GridLayout
+      v-if="isLogoutDialogMounted"
+      ref="logoutOverlay"
+      class="settings-overlay"
+    >
+      <StackLayout class="settings-overlay-backdrop" @tap="closeLogoutDialog" />
+      <StackLayout
+        ref="logoutPanel"
+        class="settings-menu-shell logout-menu-shell"
+        verticalAlignment="center"
+        horizontalAlignment="center"
+      >
+        <GridLayout class="settings-menu-outer">
+          <StackLayout class="settings-menu-inner logout-menu-inner">
+            <Label :text="ui.logoutTitle" class="settings-menu-title" />
+            <Label :text="ui.logoutMessage" class="logout-menu-message" textWrap="true" />
+            <AppButton
+              :text="ui.logoutConfirm"
+              type="arena"
+              compact
+              class="settings-action-btn"
+              horizontalAlignment="center"
+              @tap="onLogoutConfirmTap"
+            />
+            <AppButton
+              :text="ui.logoutCancel"
+              type="secondary"
+              compact
+              class="settings-action-btn"
+              horizontalAlignment="center"
+              @tap="onLogoutCancelTap"
+            />
+          </StackLayout>
+        </GridLayout>
+      </StackLayout>
+    </GridLayout>
+
+    <GridLayout
+      v-if="isEditProfileDialogMounted"
+      ref="editProfileOverlay"
+      class="settings-overlay"
+    >
+      <StackLayout class="settings-overlay-backdrop" @tap="closeEditProfileDialog" />
+      <StackLayout
+        ref="editProfilePanel"
+        class="settings-menu-shell edit-profile-shell"
+        verticalAlignment="center"
+        horizontalAlignment="center"
+      >
+        <GridLayout class="settings-menu-outer">
+          <StackLayout class="settings-menu-inner edit-profile-inner">
+            <Label :text="ui.editProfileTitle" class="settings-menu-title" />
+            <TextField
+              :text="editNicknameInput"
+              :hint="ui.editNicknameHint"
+              class="edit-profile-input"
+              @textChange="onEditNicknameChange"
+            />
+            <Label
+              v-if="editProfileError"
+              :text="editProfileError"
+              class="edit-profile-error"
+              textWrap="true"
+            />
+            <AppButton
+              :text="ui.editProfileSave"
+              type="arena"
+              compact
+              class="settings-action-btn"
+              horizontalAlignment="center"
+              @tap="onEditProfileSaveTap"
+            />
+            <AppButton
+              :text="ui.editProfileCancel"
+              type="secondary"
+              compact
+              class="settings-action-btn"
+              horizontalAlignment="center"
+              @tap="onEditProfileCancelTap"
+            />
+          </StackLayout>
+        </GridLayout>
+      </StackLayout>
+    </GridLayout>
   </GridLayout>
 </template>
 
 <script lang="ts">
 import { defineComponent } from "vue";
 import { isAndroid } from "@nativescript/core";
-import { action, alert, confirm, prompt } from "@nativescript/core/ui/dialogs";
-import StarBadge from "../../components/StarBadge.vue";
+import { alert } from "@nativescript/core/ui/dialogs";
+import UserLevelBar from "../../components/UserLevelBar.vue";
 import HexagonHeader from "../../components/HexagonHeader.vue";
+import SettingsButton from "../../components/SettingsButton.vue";
+import AppButton from "../../components/AppButton.vue";
 import Welcome from "../Welcome.vue";
 import { getMyProfile, updateMyProfile, uploadMyAvatar } from "../../services/profile";
 import { clearSession, sessionStore } from "../../stores/session";
 import { pickImageFromDevice } from "../../utils/imagePicker";
 import { normalizeBackendUrl } from "../../utils/backendUrl";
 
+function decodeEscapedUnicode(value: unknown): string {
+  if (typeof value !== "string") return "";
+  let decoded = value;
+  for (let i = 0; i < 2; i++) {
+    if (!/\\u[0-9a-fA-F]{4}/.test(decoded)) break;
+    try {
+      decoded = JSON.parse(`"${decoded.replace(/"/g, '\\"')}"`);
+    } catch {
+      break;
+    }
+  }
+  return decoded;
+}
+
 export default defineComponent({
   components: {
-    StarBadge,
+    UserLevelBar,
     HexagonHeader,
+    SettingsButton,
+    AppButton,
   },
   data() {
     return {
-      settingsBtnPressed: false,
+      isSettingsMenuMounted: false,
+      isSettingsMenuAnimating: false,
+      isLogoutDialogMounted: false,
+      isLogoutDialogAnimating: false,
+      isEditProfileDialogMounted: false,
+      isEditProfileDialogAnimating: false,
+      editNicknameInput: "",
+      editProfileError: "",
       profileName: "Профиль",
       profileBio: "Добавьте информацию о себе.",
       profileLevel: 1,
+      levelProgressCurrent: 50,
+      levelProgressRequired: 100,
       postsCount: 0,
       followersCount: 0,
       avatarSource: "",
+      ui: {
+        settingsTitle: "Настройки",
+        settingsEditProfile: "Редактировать профиль",
+        settingsChangeAvatar: "Сменить аватар",
+        settingsRefresh: "Обновить данные",
+        postsLabel: "Посты",
+        followersLabel: "Подписчики",
+        settingsLogout: "Выйти из аккаунта",
+        logoutTitle: "Выход из аккаунта",
+        logoutMessage: "Вы действительно хотите выйти?",
+        logoutConfirm: "Выйти",
+        logoutCancel: "Отмена",
+        editProfileTitle: "Редактирование профиля",
+        editNicknameHint: "Введите новый никнейм",
+        editProfileSave: "Сохранить",
+        editProfileCancel: "Отмена",
+        errNicknameRequired: "Введите никнейм.",
+        errUpdateProfile: "Не удалось обновить профиль.",
+      },
     };
   },
   async mounted() {
@@ -175,8 +342,8 @@ export default defineComponent({
   methods: {
     applyProfile(profile: any): void {
       sessionStore.profile = profile;
-      this.profileName = profile.nickname || "Профиль";
-      this.profileBio = profile.bio || "Добавьте информацию о себе.";
+      this.profileName = decodeEscapedUnicode(profile.nickname) || "Профиль";
+      this.profileBio = decodeEscapedUnicode(profile.bio) || "Добавьте информацию о себе.";
       this.profileLevel = profile.level || 1;
       this.postsCount = profile.posts_count || 0;
       this.followersCount = profile.followers_count || 0;
@@ -192,94 +359,252 @@ export default defineComponent({
       }
     },
     async openSettingsMenu(): Promise<void> {
-      const selected = await action("Настройки", "Отмена", [
-        "Обновить профиль",
-        "Обновить аватар",
-        "Обновить данные",
-        "Выйти из аккаунта",
-      ]);
-      if (selected === "Обновить аватар") {
-        await this.changeAvatar();
+      if (this.isSettingsMenuMounted || this.isSettingsMenuAnimating) return;
+
+      this.isSettingsMenuMounted = true;
+      this.isSettingsMenuAnimating = true;
+
+      await this.$nextTick();
+      const overlayRef = this.$refs.settingsOverlay as any;
+      const panelRef = this.$refs.settingsPanel as any;
+      const overlay = overlayRef?.nativeView;
+      const panel = panelRef?.nativeView;
+      if (!overlay || !panel) {
+        this.isSettingsMenuAnimating = false;
         return;
       }
 
+      overlay.opacity = 0;
+      panel.translateY = -90;
 
-      if (selected === "Обновить профиль") {
-        await this.editProfile();
-        return;
-      }
-
-      if (selected === "Обновить данные") {
-        await this.refreshProfile();
-        return;
-      }
-
-      if (selected === "Выйти из аккаунта") {
-        const approved = await confirm({
-          title: "Выход",
-          message: "Выйти из текущего аккаунта?",
-          okButtonText: "Да",
-          cancelButtonText: "Нет",
-        });
-        if (!approved) return;
-        clearSession();
-        this.$navigateTo(Welcome, { clearHistory: true });
+      try {
+        await Promise.all([
+          overlay.animate({ opacity: 1, duration: 180 }),
+          panel.animate({ translate: { x: 0, y: 0 }, duration: 240, curve: "easeOut" as any }),
+        ]);
+      } finally {
+        this.isSettingsMenuAnimating = false;
       }
     },
-    async editProfile(): Promise<void> {
-      if (!sessionStore.token || !sessionStore.profile) {
-        await alert({ title: "Профиль", message: "Сначала загрузите профиль.", okButtonText: "OK" });
+    async closeSettingsMenu(): Promise<void> {
+      if (!this.isSettingsMenuMounted || this.isSettingsMenuAnimating) return;
+      this.isSettingsMenuAnimating = true;
+
+      const overlayRef = this.$refs.settingsOverlay as any;
+      const panelRef = this.$refs.settingsPanel as any;
+      const overlay = overlayRef?.nativeView;
+      const panel = panelRef?.nativeView;
+
+      if (overlay && panel) {
+        try {
+          await Promise.all([
+            overlay.animate({ opacity: 0, duration: 160 }),
+            panel.animate({ translate: { x: 0, y: -90 }, duration: 200, curve: "easeIn" as any }),
+          ]);
+        } finally {
+          this.isSettingsMenuMounted = false;
+          this.isSettingsMenuAnimating = false;
+        }
         return;
       }
 
-      const nicknameResult = await prompt({
-        title: "Никнейм",
-        message: "Введите новый никнейм",
-        defaultText: this.profileName,
-        okButtonText: "Далее",
-        cancelButtonText: "Отмена",
-      });
-      if (!nicknameResult.result) return;
+      this.isSettingsMenuMounted = false;
+      this.isSettingsMenuAnimating = false;
+    },
+    async openLogoutDialog(): Promise<void> {
+      if (this.isLogoutDialogMounted || this.isLogoutDialogAnimating) return;
 
-      const bioResult = await prompt({
-        title: "О себе",
-        message: "Введите описание",
-        defaultText: this.profileBio,
-        okButtonText: "Далее",
-        cancelButtonText: "Отмена",
-      });
-      if (!bioResult.result) return;
+      this.isLogoutDialogMounted = true;
+      this.isLogoutDialogAnimating = true;
 
-      const levelResult = await prompt({
-        title: "Уровень",
-        message: "Введите уровень (1..100)",
-        defaultText: String(this.profileLevel),
-        okButtonText: "Сохранить",
-        cancelButtonText: "Отмена",
-      });
-      if (!levelResult.result) return;
+      await this.$nextTick();
+      const overlayRef = this.$refs.logoutOverlay as any;
+      const panelRef = this.$refs.logoutPanel as any;
+      const overlay = overlayRef?.nativeView;
+      const panel = panelRef?.nativeView;
+      if (!overlay || !panel) {
+        this.isLogoutDialogAnimating = false;
+        return;
+      }
 
-      const nextLevel = Number(levelResult.text);
-      if (!Number.isFinite(nextLevel) || nextLevel < 1 || nextLevel > 100) {
-        await alert({ title: "Ошибка", message: "Уровень должен быть в диапазоне 1..100.", okButtonText: "OK" });
+      overlay.opacity = 0;
+      panel.translateY = -70;
+
+      try {
+        await Promise.all([
+          overlay.animate({ opacity: 1, duration: 160 }),
+          panel.animate({ translate: { x: 0, y: 0 }, duration: 220, curve: "easeOut" as any }),
+        ]);
+      } finally {
+        this.isLogoutDialogAnimating = false;
+      }
+    },
+    async closeLogoutDialog(): Promise<void> {
+      if (!this.isLogoutDialogMounted || this.isLogoutDialogAnimating) return;
+      this.isLogoutDialogAnimating = true;
+
+      const overlayRef = this.$refs.logoutOverlay as any;
+      const panelRef = this.$refs.logoutPanel as any;
+      const overlay = overlayRef?.nativeView;
+      const panel = panelRef?.nativeView;
+
+      if (overlay && panel) {
+        try {
+          await Promise.all([
+            overlay.animate({ opacity: 0, duration: 140 }),
+            panel.animate({ translate: { x: 0, y: -70 }, duration: 180, curve: "easeIn" as any }),
+          ]);
+        } finally {
+          this.isLogoutDialogMounted = false;
+          this.isLogoutDialogAnimating = false;
+        }
+        return;
+      }
+
+      this.isLogoutDialogMounted = false;
+      this.isLogoutDialogAnimating = false;
+    },
+    async openEditProfileDialog(): Promise<void> {
+      if (this.isEditProfileDialogMounted || this.isEditProfileDialogAnimating) return;
+      if (!sessionStore.token || !sessionStore.profile) {
+        await alert({
+          title: "Профиль",
+          message: "Сначала загрузите профиль.",
+          okButtonText: "OK",
+        });
+        return;
+      }
+
+      this.editNicknameInput = this.profileName || "";
+      this.editProfileError = "";
+      this.isEditProfileDialogMounted = true;
+      this.isEditProfileDialogAnimating = true;
+
+      await this.$nextTick();
+      const overlayRef = this.$refs.editProfileOverlay as any;
+      const panelRef = this.$refs.editProfilePanel as any;
+      const overlay = overlayRef?.nativeView;
+      const panel = panelRef?.nativeView;
+      if (!overlay || !panel) {
+        this.isEditProfileDialogAnimating = false;
+        return;
+      }
+
+      overlay.opacity = 0;
+      panel.translateY = -70;
+
+      try {
+        await Promise.all([
+          overlay.animate({ opacity: 1, duration: 160 }),
+          panel.animate({ translate: { x: 0, y: 0 }, duration: 220, curve: "easeOut" as any }),
+        ]);
+      } finally {
+        this.isEditProfileDialogAnimating = false;
+      }
+    },
+    async closeEditProfileDialog(): Promise<void> {
+      if (!this.isEditProfileDialogMounted || this.isEditProfileDialogAnimating) return;
+      this.isEditProfileDialogAnimating = true;
+
+      const overlayRef = this.$refs.editProfileOverlay as any;
+      const panelRef = this.$refs.editProfilePanel as any;
+      const overlay = overlayRef?.nativeView;
+      const panel = panelRef?.nativeView;
+
+      if (overlay && panel) {
+        try {
+          await Promise.all([
+            overlay.animate({ opacity: 0, duration: 140 }),
+            panel.animate({ translate: { x: 0, y: -70 }, duration: 180, curve: "easeIn" as any }),
+          ]);
+        } finally {
+          this.isEditProfileDialogMounted = false;
+          this.isEditProfileDialogAnimating = false;
+        }
+        return;
+      }
+
+      this.isEditProfileDialogMounted = false;
+      this.isEditProfileDialogAnimating = false;
+    },
+    onSettingsButtonTap(): void {
+      if (this.isSettingsMenuAnimating || this.isLogoutDialogAnimating || this.isEditProfileDialogAnimating) return;
+      if (this.isEditProfileDialogMounted) {
+        void this.closeEditProfileDialog();
+        return;
+      }
+      if (this.isLogoutDialogMounted) {
+        void this.closeLogoutDialog();
+        return;
+      }
+      if (this.isSettingsMenuMounted) {
+        void this.closeSettingsMenu();
+        return;
+      }
+      void this.openSettingsMenu();
+    },
+    async onLogoutConfirmTap(): Promise<void> {
+      await this.closeLogoutDialog();
+      clearSession();
+      this.$navigateTo(Welcome, { clearHistory: true });
+    },
+    async onLogoutCancelTap(): Promise<void> {
+      await this.closeLogoutDialog();
+    },
+    onEditNicknameChange(args: any): void {
+      this.editNicknameInput = String(args?.value ?? args?.object?.text ?? "");
+      this.editProfileError = "";
+    },
+    async onEditProfileSaveTap(): Promise<void> {
+      if (!sessionStore.token || !sessionStore.profile) {
+        this.editProfileError = this.ui.errUpdateProfile;
+        return;
+      }
+
+      const nextNickname = this.editNicknameInput.trim();
+      if (!nextNickname) {
+        this.editProfileError = this.ui.errNicknameRequired;
         return;
       }
 
       try {
         const profile = await updateMyProfile(sessionStore.token, {
-          nickname: nicknameResult.text.trim(),
-          bio: bioResult.text.trim() || null,
-          level: Math.round(nextLevel),
+          nickname: nextNickname,
+          bio: sessionStore.profile.bio ?? null,
+          level: Number(sessionStore.profile.level ?? this.profileLevel ?? 1),
           avatar_url: sessionStore.profile.avatar_url,
         });
         this.applyProfile(profile);
+        await this.closeEditProfileDialog();
       } catch (error) {
-        await alert({
-          title: "Ошибка",
-          message: error instanceof Error ? error.message : "Не удалось обновить профиль.",
-          okButtonText: "OK",
-        });
+        this.editProfileError = error instanceof Error ? error.message : this.ui.errUpdateProfile;
       }
+    },
+    async onEditProfileCancelTap(): Promise<void> {
+      await this.closeEditProfileDialog();
+    },
+    async onSettingsActionTap(actionKey: "edit" | "avatar" | "refresh" | "logout"): Promise<void> {
+      if (this.isSettingsMenuAnimating) return;
+      await this.closeSettingsMenu();
+
+      if (actionKey === "avatar") {
+        await this.changeAvatar();
+        return;
+      }
+      if (actionKey === "edit") {
+        await this.openEditProfileDialog();
+        return;
+      }
+      if (actionKey === "refresh") {
+        await this.refreshProfile();
+        return;
+      }
+      if (actionKey === "logout") {
+        await this.openLogoutDialog();
+      }
+    },
+    async editProfile(): Promise<void> {
+      await this.openEditProfileDialog();
     },
     async changeAvatar(): Promise<void> {
       if (!sessionStore.token) return;
@@ -301,236 +626,6 @@ export default defineComponent({
         });
       }
     },
-    onSettingsTouch(args: any) {
-      if (!isAndroid) return;
-      const action = args.action;
-      if (action === "down") {
-        this.settingsBtnPressed = true;
-        this.redrawSettingsButton();
-      } else if (action === "up" || action === "cancel") {
-        this.settingsBtnPressed = false;
-        this.redrawSettingsButton();
-        if (action === "up") {
-          this.openSettingsMenu();
-        }
-      }
-    },
-
-    drawSettingsButton(args: any) {
-      if (!isAndroid) return;
-      const nv = args.object?.nativeView;
-      if (!nv) return;
-      this.disableClipping(args);
-      
-      setTimeout(() => {
-        this.renderSettingsButton(nv, false);
-      }, 100);
-    },
-
-    redrawSettingsButton() {
-      const ref = this.$refs.settingsBtn as any;
-      const nv = ref?.nativeView;
-      if (!nv) return;
-      
-      if (nv.getChildCount && nv.getChildCount() > 0) {
-        nv.removeAllViews();
-      }
-      this.renderSettingsButton(nv, this.settingsBtnPressed);
-    },
-
-    renderSettingsButton(nativeView: any, pressed: boolean) {
-      try {
-        const context = nativeView.getContext();
-        const density = context.getResources().getDisplayMetrics().density;
-        const btnW = 35 * density;
-        const btnH = 40 * density;
-        const pressOffset = pressed ? 3 * density : 0;
-        const radius = 10 * density;
-    
-        const CustomView = (android.view.View as any).extend({
-          onDraw(canvas: any) {
-            const paint = new android.graphics.Paint();
-            paint.setAntiAlias(true);
-    
-            if (!pressed) {
-              const shadowOffset = 4 * density;
-              const shadowRect = new android.graphics.RectF(
-                0, 
-                shadowOffset, 
-                btnW, 
-                35 * density + shadowOffset
-              );
-              paint.setStyle(android.graphics.Paint.Style.FILL);
-              paint.setColor(android.graphics.Color.argb(115, 0, 0, 0));
-              canvas.drawRoundRect(shadowRect, radius, radius, paint);
-              
-              // Возвращаем alpha на 100% (исправление полупрозрачности!)
-              paint.setAlpha(255);
-            }
-    
-            const baseY = pressOffset;
-    
-            const outerRect = new android.graphics.RectF(0, baseY, btnW, baseY + 35 * density);
-            const outerGradient = new android.graphics.LinearGradient(
-              0, baseY, 0, baseY + 35 * density,
-              android.graphics.Color.parseColor("#5BD3F3"),
-              android.graphics.Color.parseColor("#2257A8"),
-              android.graphics.Shader.TileMode.CLAMP
-            );
-            paint.setStyle(android.graphics.Paint.Style.FILL);
-            paint.setShader(outerGradient);
-            canvas.drawRoundRect(outerRect, radius, radius, paint);
-            paint.setShader(null);
-    
-            paint.setStyle(android.graphics.Paint.Style.STROKE);
-            paint.setStrokeWidth(2 * density);
-            paint.setColor(android.graphics.Color.parseColor("#030303"));
-            canvas.drawRoundRect(outerRect, radius, radius, paint);
-    
-            const midRect = new android.graphics.RectF(
-              2 * density, baseY + 2 * density,
-              btnW - 2 * density, baseY + 31 * density
-            );
-            const midGradient = new android.graphics.LinearGradient(
-              0, baseY, 0, baseY + 31 * density,
-              android.graphics.Color.parseColor("#4097F4"),
-              android.graphics.Color.parseColor("#409AF1"),
-              android.graphics.Shader.TileMode.CLAMP
-            );
-            paint.setStyle(android.graphics.Paint.Style.FILL);
-            paint.setShader(midGradient);
-            canvas.drawRoundRect(midRect, radius - 1, radius - 1, paint);
-            paint.setShader(null);
-    
-            const lowerRect = new android.graphics.RectF(
-              2.5 * density, baseY + 15 * density,
-              btnW - 2.5 * density, baseY + 31 * density
-            );
-            const lowerGradient = new android.graphics.LinearGradient(
-              0, baseY + 15 * density, 0, baseY + 31 * density,
-              android.graphics.Color.parseColor("#4097F4"),
-              android.graphics.Color.parseColor("#4080FB"),
-              android.graphics.Shader.TileMode.CLAMP
-            );
-            paint.setStyle(android.graphics.Paint.Style.FILL);
-            paint.setShader(lowerGradient);
-            canvas.drawRoundRect(lowerRect, radius - 2, radius - 2, paint);
-            paint.setShader(null);
-    
-            const topRect = new android.graphics.RectF(
-              2.5 * density, baseY + 2.5 * density,
-              btnW - 2.5 * density, baseY + 17 * density
-            );
-            paint.setStyle(android.graphics.Paint.Style.FILL);
-            paint.setColor(android.graphics.Color.parseColor("#4DADF9"));
-            canvas.drawRoundRect(topRect, radius - 2, radius - 2, paint);
-    
-            const iconCx = btnW / 2;
-            const iconCy = baseY + 17.5 * density;
-            const outerR = 11 * density;
-            const innerR = outerR * 0.65;
-            const toothWidth = 5.5 * density;
-            const toothHeight = (outerR - innerR) + 2 * density;
-            const teeth = 8;
-    
-            for (let i = 0; i < teeth; i++) {
-              const angle = (2 * Math.PI / teeth) * i - Math.PI / 2;
-              const toothCx = iconCx + (innerR + (outerR - innerR) / 2) * Math.cos(angle);
-              const toothCy = iconCy + (innerR + (outerR - innerR) / 2) * Math.sin(angle);
-              
-              canvas.save();
-              canvas.rotate((angle * 180 / Math.PI) + 90, toothCx, toothCy);
-              
-              const toothRect = new android.graphics.RectF(
-                toothCx - toothWidth / 2,
-                toothCy - toothHeight / 2,
-                toothCx + toothWidth / 2,
-                toothCy + toothHeight / 2
-              );
-              
-              const toothGradient = new android.graphics.LinearGradient(
-                toothRect.left, toothRect.top, toothRect.left, toothRect.bottom,
-                android.graphics.Color.parseColor("#C5C5C5"),
-                android.graphics.Color.parseColor("#FFFFFF"),
-                android.graphics.Shader.TileMode.CLAMP
-              );
-              paint.setStyle(android.graphics.Paint.Style.FILL);
-              paint.setShader(toothGradient);
-              canvas.drawRoundRect(toothRect, 1.5 * density, 1.5 * density, paint);
-              paint.setShader(null);
-              
-              paint.setStyle(android.graphics.Paint.Style.STROKE);
-              paint.setStrokeWidth(0.5 * density);
-              paint.setColor(android.graphics.Color.argb(180, 0, 0, 0));
-              canvas.drawRoundRect(toothRect, 1.5 * density, 1.5 * density, paint);
-              
-              canvas.restore();
-            }
-    
-            const mainGradient = new android.graphics.LinearGradient(
-              0, iconCy - innerR, 0, iconCy + innerR,
-              android.graphics.Color.parseColor("#C5C5C5"),
-              android.graphics.Color.parseColor("#FFFFFF"),
-              android.graphics.Shader.TileMode.CLAMP
-            );
-            paint.setStyle(android.graphics.Paint.Style.FILL);
-            paint.setShader(mainGradient);
-            canvas.drawCircle(iconCx, iconCy, innerR, paint);
-            paint.setShader(null);
-    
-            paint.setStyle(android.graphics.Paint.Style.STROKE);
-            paint.setStrokeWidth(0.5 * density);
-            paint.setColor(android.graphics.Color.argb(180, 0, 0, 0));
-            canvas.drawCircle(iconCx, iconCy, innerR, paint);
-    
-            const holeR = innerR * 0.42;
-            const holeGradient = new android.graphics.LinearGradient(
-              0, iconCy - holeR, 0, iconCy + holeR,
-              android.graphics.Color.parseColor("#1778C5"),
-              android.graphics.Color.parseColor("#9DD2FB"),
-              android.graphics.Shader.TileMode.CLAMP
-            );
-            paint.setStyle(android.graphics.Paint.Style.FILL);
-            paint.setShader(holeGradient);
-            canvas.drawCircle(iconCx, iconCy, holeR, paint);
-            paint.setShader(null);
-    
-            canvas.save();
-            const clipPath = new android.graphics.Path();
-            clipPath.addCircle(iconCx, iconCy, holeR, android.graphics.Path.Direction.CW);
-            canvas.clipPath(clipPath);
-            
-            const insetGrad = new android.graphics.LinearGradient(
-              0, iconCy - holeR, 0, iconCy,
-              android.graphics.Color.argb(70, 0, 0, 0),
-              android.graphics.Color.argb(0, 0, 0, 0),
-              android.graphics.Shader.TileMode.CLAMP
-            );
-            paint.setStyle(android.graphics.Paint.Style.FILL);
-            paint.setShader(insetGrad);
-            canvas.drawCircle(iconCx, iconCy - holeR / 2, holeR, paint);
-            paint.setShader(null);
-            canvas.restore();
-    
-            paint.setStyle(android.graphics.Paint.Style.STROKE);
-            paint.setStrokeWidth(1 * density);
-            paint.setColor(android.graphics.Color.BLACK);
-            canvas.drawCircle(iconCx, iconCy, holeR, paint);
-          }
-        });
-    
-        const customView = new CustomView(context);
-        const lp = new android.view.ViewGroup.LayoutParams(
-          Math.round(btnW),
-          Math.round(btnH)
-        );
-        customView.setLayoutParams(lp);
-        nativeView.addView(customView);
-      } catch (e) {
-        console.error("renderSettingsButton error:", e);
-      }
-    },
-
     disableClipping(args: any) {
       if (!isAndroid) return;
       const nv = args.object?.nativeView;
@@ -699,6 +794,99 @@ export default defineComponent({
   background-color: transparent;
 }
 
+.settings-overlay {
+  background-color: rgba(9, 15, 28, 0.45);
+  padding: 20 14;
+}
+
+.settings-overlay-backdrop {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.settings-menu-shell {
+  width: 280;
+  height: 320;
+  margin: 0;
+  z-index: 2;
+}
+
+.settings-menu-outer {
+  height: 100%;
+  background: linear-gradient(to bottom, #eeb859, #7c4c0b);
+  border-width: 2;
+  border-color: #030303;
+  border-radius: 14;
+  padding: 4 4 10 4;
+}
+
+.settings-menu-inner {
+  height: 100%;
+  background: linear-gradient(to bottom, #2b8cff, #1556a8);
+  border-width: 1;
+  border-color: #000000;
+  border-radius: 12;
+  padding: 10 6 8 6;
+}
+
+.settings-menu-title {
+  font-family: "supercell-magic_0";
+  color: #ffffff;
+  font-size: 15;
+  text-align: center;
+  margin-bottom: 4;
+  text-shadow: 0 1.6 0.1 rgba(0, 0, 0, 0.91);
+}
+
+.settings-action-btn {
+  margin: 2 0;
+}
+
+.logout-menu-shell {
+  height: 248;
+}
+
+.logout-menu-inner {
+  padding: 12 10 10 10;
+}
+
+.logout-menu-message {
+  font-family: "supercell-magic_0";
+  color: #ffffff;
+  font-size: 13;
+  text-align: center;
+  margin: 6 4 10 4;
+  text-shadow: 0 1 0 rgba(0, 0, 0, 0.8);
+}
+
+.edit-profile-shell {
+  height: 248;
+}
+
+.edit-profile-inner {
+  padding: 12 10 10 10;
+}
+
+.edit-profile-input {
+  margin: 4 8 10 8;
+  padding: 8 10;
+  background-color: #ffffff;
+  color: #1f2e47;
+  border-radius: 10;
+  border-width: 1;
+  border-color: #1a4f93;
+}
+
+.edit-profile-error {
+  font-family: "supercell-magic_0";
+  color: #ffd8d8;
+  font-size: 11;
+  text-align: center;
+  margin: 0 8 8 8;
+  text-shadow: 0 1 0 rgba(0, 0, 0, 0.8);
+}
+
 .content-bg-container {
   background-color: #C9A37C;
   padding: 0;
@@ -792,29 +980,6 @@ export default defineComponent({
   height: 36;
 }
 
-.xp-bar-bg {
-  background-color: #1a0f07;
-  border-radius: 8;
-  border-width: 2;
-  border-color: #000;
-  height: 22;
-  width: 80%;
-}
-
-.xp-bar-fill {
-  background: linear-gradient(to right, #2ecc71, #27ae60);
-  border-radius: 6;
-  width: 50%;
-  height: 100%;
-}
-
-.xp-text {
-  font-family: "supercell-magic_0";
-  color: white;
-  font-size: 9;
-  text-shadow: 0 1.6 0.1 rgba(0, 0, 0, 0.91);
-}
-
 /* ===== STATS CARD ===== */
 .stats-outer-shadow {
   background-color: rgba(0, 0, 0, 0.45);
@@ -868,7 +1033,7 @@ export default defineComponent({
   padding: 0 8;
 }
 
-/* НОВЫЙ КЛАСС ДЛЯ ИКОНОК-КАРТИНОК */
+/* Icons */
 .stat-image-icon {
   width: 22;
   height: 22;
@@ -922,3 +1087,5 @@ export default defineComponent({
   text-shadow: 0 1.6 0.1 rgba(0, 0, 0, 0.91);
 }
 </style>
+
+

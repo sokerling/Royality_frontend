@@ -3,20 +3,11 @@
     <ScrollView row="0" backgroundColor="transparent" @scroll="onFeedScroll">
       <StackLayout :paddingTop="statusBarHeight" paddingBottom="84" backgroundColor="transparent">
         <StackLayout class="top-panel">
-          <GridLayout columns="*" rows="*">
-            <GridLayout row="0" col="0" columns="*" class="xp-bar-bg" marginLeft="24" horizontalAlignment="left">
-              <StackLayout col="0" class="xp-bar-fill" horizontalAlignment="left" />
-              <Label col="0" text="50 / 100" class="xp-text" horizontalAlignment="center" verticalAlignment="center" />
-            </GridLayout>
-            <StarBadge
-              row="0" col="0"
-              :level="5"
-              :size="48"
-              horizontalAlignment="left"
-              verticalAlignment="center"
-              marginLeft="0"
-            />
-          </GridLayout>
+          <UserLevelBar
+            :level="userLevel"
+            :currentXp="50"
+            :requiredXp="100"
+          />
         </StackLayout>
 
         <StackLayout class="feed-header">
@@ -112,7 +103,7 @@ import { defineComponent } from "vue";
 import { isAndroid } from "@nativescript/core";
 import { alert } from "@nativescript/core/ui/dialogs";
 import PostCard from "../../components/PostCard.vue";
-import StarBadge from "../../components/StarBadge.vue";
+import UserLevelBar from "../../components/UserLevelBar.vue";
 import AppLabel from "../../components/AppLabel.vue";
 import type { Post } from "../../types/post";
 import type { PostResponse } from "../../types/api";
@@ -124,24 +115,24 @@ import { normalizeBackendUrl } from "../../utils/backendUrl";
 
 export default defineComponent({
   name: "FeedTab",
-  components: { PostCard, StarBadge, AppLabel },
+  components: { PostCard, UserLevelBar, AppLabel },
   data() {
     return {
       ui: {
-        newsFeedTitle: "\u041d\u043e\u0432\u043e\u0441\u0442\u043d\u0430\u044f \u043b\u0435\u043d\u0442\u0430",
-        composeHint: "\u041f\u043e\u0434\u0435\u043b\u0438\u0442\u0435\u0441\u044c \u043d\u043e\u0432\u043e\u0441\u0442\u044c\u044e...",
-        choosePhoto: "\u0412\u044b\u0431\u0440\u0430\u0442\u044c \u0444\u043e\u0442\u043e",
-        publishPost: "\u041e\u043f\u0443\u0431\u043b\u0438\u043a\u043e\u0432\u0430\u0442\u044c",
-        creatingPost: "\u041f\u0443\u0431\u043b\u0438\u043a\u0430\u0446\u0438\u044f...",
-        loadingFeed: "\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430 \u043b\u0435\u043d\u0442\u044b...",
-        loadingMore: "\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430 \u0435\u0449\u0435...",
-        noMorePosts: "\u0411\u043e\u043b\u044c\u0448\u0435 \u043f\u043e\u0441\u0442\u043e\u0432 \u043f\u043e\u043a\u0430 \u043d\u0435\u0442.",
-        postDialogTitle: "\u041f\u043e\u0441\u0442",
-        errAuthRequired: "\u0422\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044f \u0430\u0432\u0442\u043e\u0440\u0438\u0437\u0430\u0446\u0438\u044f.",
-        errPickImage: "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0432\u044b\u0431\u0440\u0430\u0442\u044c \u0438\u0437\u043e\u0431\u0440\u0430\u0436\u0435\u043d\u0438\u0435.",
-        errEnterPostText: "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0442\u0435\u043a\u0441\u0442 \u043f\u043e\u0441\u0442\u0430.",
-        errCreatePost: "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0441\u043e\u0437\u0434\u0430\u0442\u044c \u043f\u043e\u0441\u0442.",
-        errLoadFeed: "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u043b\u0435\u043d\u0442\u0443.",
+        newsFeedTitle: "Новостная лента",
+        composeHint: "Поделитесь новостью...",
+        choosePhoto: "Выбрать фото",
+        publishPost: "Опубликовать",
+        creatingPost: "Публикация...",
+        loadingFeed: "Загрузка ленты...",
+        loadingMore: "Загрузка еще...",
+        noMorePosts: "Больше постов пока нет.",
+        postDialogTitle: "Пост",
+        errAuthRequired: "Требуется авторизация.",
+        errPickImage: "Не удалось выбрать изображение.",
+        errEnterPostText: "Введите текст поста.",
+        errCreatePost: "Не удалось создать пост.",
+        errLoadFeed: "Не удалось загрузить ленту.",
       },
       posts: [] as Post[],
       statusBarHeight: 0 as number,
@@ -172,6 +163,12 @@ export default defineComponent({
       }
     }
     await this.loadFeed(true);
+  },
+  computed: {
+    userLevel(): number {
+      const level = Number(sessionStore.profile?.level ?? 1);
+      return Number.isFinite(level) && level > 0 ? Math.round(level) : 1;
+    },
   },
   methods: {
     onPostTextChange(args: any): void {
@@ -333,27 +330,6 @@ export default defineComponent({
 .top-panel {
   padding: 10 14;
   background-color: transparent;
-}
-
-.xp-bar-bg {
-  width: 160;
-  height: 30;
-  border-radius: 15;
-  background-color: #1a0f07;
-  border-width: 1;
-  border-color: #000000;
-}
-
-.xp-bar-fill {
-  width: 80;
-  height: 30;
-  border-radius: 15;
-  background: linear-gradient(#6ec6ff, #1a7ad4);
-}
-
-.xp-text {
-  font-size: 11;
-  color: #ffffff;
 }
 
 .feed-header {
