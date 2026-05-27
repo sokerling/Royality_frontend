@@ -86,12 +86,12 @@ export default defineComponent({
   data() {
     return {
       ui: {
-        likeOn: "\u2764\uFE0F",
-        likeOff: "\uD83E\uDD0D",
-        commentsIcon: "\uD83D\uDCAC",
-        commentsLabel: " \u041a\u043e\u043c\u043c\u0435\u043d\u0442\u0430\u0440\u0438\u0435\u0432",
-        repostIcon: "\uD83D\uDD04",
-        repostLabel: "\u0420\u0435\u043f\u043e\u0441\u0442",
+        likeOn: "❤️",
+        likeOff: "🤍",
+        commentsIcon: "💬",
+        commentsLabel: " Комментариев",
+        repostIcon: "🔄",
+        repostLabel: "Репост",
       },
     };
   },

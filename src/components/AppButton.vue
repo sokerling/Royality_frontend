@@ -1,29 +1,36 @@
 <template>
-  <GridLayout width="220" height="76" rows="76" columns="220" @touch="onTouch" ref="wrapper">
+  <GridLayout
+    :width="buttonWidth"
+    :height="buttonHeight"
+    :rows="layoutRows"
+    :columns="layoutCols"
+    @touch="onTouch"
+    ref="wrapper"
+  >
     <StackLayout
       row="0" col="0"
-      width="213" height="68"
+      :width="layer1Width" :height="layer1Height"
       verticalAlignment="center"
       horizontalAlignment="center"
       :class="type === 'secondary' ? 'layer-1-sec' : 'layer-1'"
     />
     <StackLayout
       row="0" col="0"
-      width="209" height="60"
+      :width="layer2Width" :height="layer2Height"
       verticalAlignment="center"
       horizontalAlignment="center"
       :class="type === 'secondary' ? 'layer-2-sec' : 'layer-2'"
     />
     <StackLayout
       row="0" col="0"
-      width="195" height="54"
+      :width="layer3Width" :height="layer3Height"
       verticalAlignment="center"
       horizontalAlignment="center"
       :class="type === 'secondary' ? 'layer-3-sec' : 'layer-3'"
     />
     <StackLayout
       row="0" col="0"
-      width="195" height="51"
+      :width="layer4Width" :height="layer4Height"
       verticalAlignment="center"
       horizontalAlignment="center"
       :class="type === 'secondary' ? 'layer-4-sec' : 'layer-4'"
@@ -31,6 +38,9 @@
       <AppLabel
         :text="text"
         class="btn-text"
+        :class="{ 'btn-text--compact': compact }"
+        :strokeWidth="compact ? 4 : 6"
+        :shadowOffset="compact ? 3 : 4"
         verticalAlignment="center"
         horizontalAlignment="center"
       />
@@ -63,8 +73,53 @@ export default defineComponent({
       type: String as PropType<ButtonType>,
       default: "arena",
     },
+    compact: {
+      type: Boolean as PropType<boolean>,
+      default: false,
+    },
   },
   emits: ["tap"],
+  computed: {
+    sizeScale(): number {
+      return this.compact ? 0.72 : 1;
+    },
+    buttonWidth(): number {
+      return Math.round(220 * this.sizeScale);
+    },
+    buttonHeight(): number {
+      return Math.round(76 * this.sizeScale);
+    },
+    layoutRows(): string {
+      return String(this.buttonHeight);
+    },
+    layoutCols(): string {
+      return String(this.buttonWidth);
+    },
+    layer1Width(): number {
+      return Math.round(213 * this.sizeScale);
+    },
+    layer1Height(): number {
+      return Math.round(68 * this.sizeScale);
+    },
+    layer2Width(): number {
+      return Math.round(209 * this.sizeScale);
+    },
+    layer2Height(): number {
+      return Math.round(60 * this.sizeScale);
+    },
+    layer3Width(): number {
+      return Math.round(195 * this.sizeScale);
+    },
+    layer3Height(): number {
+      return Math.round(54 * this.sizeScale);
+    },
+    layer4Width(): number {
+      return Math.round(195 * this.sizeScale);
+    },
+    layer4Height(): number {
+      return Math.round(51 * this.sizeScale);
+    },
+  },
   methods: {
     isDownAction(action: unknown): boolean {
       return action === TouchAction.down || action === "down";
@@ -112,13 +167,16 @@ export default defineComponent({
 
     onTouch(event: any): void {
       if (this.isDownAction(event.action)) {
-        this.animatePressDown();
+        void this.animatePressDown().catch(() => {});
       } else if (this.isUpAction(event.action) || this.isCancelAction(event.action)) {
-        this.animatePressUp().then(() => {
-          if (this.isUpAction(event.action)) {
-            this.$emit("tap");
-          }
-        });
+        const shouldEmitTap = this.isUpAction(event.action);
+        void this.animatePressUp()
+          .catch(() => {})
+          .finally(() => {
+            if (shouldEmitTap) {
+              this.$emit("tap");
+            }
+          });
       }
     },
   },
@@ -172,5 +230,9 @@ export default defineComponent({
   color: #ffffff;
   font-size: 18;
   text-align: center;
+}
+
+.btn-text--compact {
+  font-size: 13;
 }
 </style>
