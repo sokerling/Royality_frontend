@@ -6,6 +6,8 @@
   "dependencies": {
     "@nativescript/background-http": "^6.0.2",
     "@nativescript/core": "~8.9.1",
+    "@nativescript/firebase-core": "^5.0.2",
+    "@nativescript/firebase-messaging": "^5.0.2",
     "@nativescript/secure-storage": "^3.0.3",
     "nativescript-vue": "3.0.2",
     "xstate": "^5.20.1"

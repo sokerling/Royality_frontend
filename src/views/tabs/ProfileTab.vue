@@ -272,6 +272,7 @@ import SettingsButton from "../../components/SettingsButton.vue";
 import AppButton from "../../components/AppButton.vue";
 import Welcome from "../Welcome.vue";
 import { getMyProfile, updateMyProfile, uploadMyAvatar } from "../../services/profile";
+import { unregisterCurrentDeviceForPush } from "../../services/pushNotifications";
 import { clearSession, sessionStore } from "../../stores/session";
 import { pickImageFromDevice } from "../../utils/imagePicker";
 import { normalizeBackendUrl } from "../../utils/backendUrl";
@@ -545,6 +546,7 @@ export default defineComponent({
     },
     async onLogoutConfirmTap(): Promise<void> {
       await this.closeLogoutDialog();
+      await unregisterCurrentDeviceForPush(sessionStore.token);
       clearSession();
       this.$navigateTo(Welcome, { clearHistory: true });
     },

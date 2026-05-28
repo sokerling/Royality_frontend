@@ -9,4 +9,5 @@ export interface Post {
   liked: boolean;
   timeAgo: string;
   medias?: string[];
+  disableComments?: boolean;
 }

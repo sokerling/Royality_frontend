@@ -4,7 +4,7 @@
 
     <StackLayout row="0" col="0" class="card" margin="4">
       <GridLayout columns="auto, *, auto" rows="auto, auto" class="card-header">
-        <GridLayout row="0" rowSpan="2" col="0" class="avatar-container">
+        <GridLayout row="0" rowSpan="2" col="0" class="avatar-container" @tap="onOpenProfile">
           <StackLayout class="avatar-shadow" />
           <Image
             :src="post.user.avatarUrl"
@@ -21,6 +21,7 @@
           class="username"
           verticalAlignment="bottom"
           :color="post.user.usernameColor"
+          @tap="onOpenProfile"
         />
 
         <Label
@@ -52,17 +53,16 @@
 
         <StackLayout col="1" class="vertical-divider" />
 
-        <StackLayout col="2" orientation="horizontal" class="action-btn">
+        <StackLayout col="2" orientation="horizontal" class="action-btn" @tap="onOpenComments">
           <Label :text="ui.commentsIcon" class="action-icon" />
           <Label :text="String(post.comments)" class="action-count" />
           <Label :text="ui.commentsLabel" class="action-label" />
         </StackLayout>
 
-        <StackLayout col="3" class="vertical-divider" />
+        <StackLayout v-if="canEdit" col="3" class="vertical-divider" />
 
-        <StackLayout col="4" orientation="horizontal" class="action-btn">
-          <Label :text="ui.repostIcon" class="action-icon" />
-          <Label :text="ui.repostLabel" class="action-label" />
+        <StackLayout v-if="canEdit" col="4" orientation="horizontal" class="action-btn" @tap="onEdit">
+          <Label text="Редактировать" class="action-label action-label--edit" />
         </StackLayout>
       </GridLayout>
     </StackLayout>
@@ -81,8 +81,12 @@ export default defineComponent({
       type: Object as PropType<Post>,
       required: true,
     },
+    canEdit: {
+      type: Boolean as PropType<boolean>,
+      default: false,
+    },
   },
-  emits: ["like"],
+  emits: ["like", "open-profile", "open-comments", "edit"],
   data() {
     return {
       ui: {
@@ -90,8 +94,6 @@ export default defineComponent({
         likeOff: "🤍",
         commentsIcon: "💬",
         commentsLabel: " Комментариев",
-        repostIcon: "🔄",
-        repostLabel: "Репост",
       },
     };
   },
@@ -103,6 +105,15 @@ export default defineComponent({
   methods: {
     onLike(): void {
       this.$emit("like", this.post.id);
+    },
+    onOpenProfile(): void {
+      this.$emit("open-profile", this.post.user.id);
+    },
+    onOpenComments(): void {
+      this.$emit("open-comments", this.post.id);
+    },
+    onEdit(): void {
+      this.$emit("edit", this.post.id);
     },
 
     onCardTouch(event: any): void {
@@ -252,6 +263,10 @@ export default defineComponent({
   font-size: 13;
   color: #584f41;
   text-align: center;
+}
+
+.action-label--edit {
+  font-weight: bold;
 }
 
 .vertical-divider {
