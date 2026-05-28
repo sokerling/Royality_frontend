@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "1065762325749",
-    "project_id": "royality-437aa",
-    "storage_bucket": "royality-437aa.firebasestorage.app"
+    "project_number": "763485533738",
+    "project_id": "royality-3bb58",
+    "storage_bucket": "royality-3bb58.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1065762325749:android:28fd6d175648eb98cf31bc",
+        "mobilesdk_app_id": "1:763485533738:android:3e513e2550c4bd543bf553",
         "android_client_info": {
-          "package_name": "com.royality"
+          "package_name": "com.royality.app"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBFwanwrFN88fSkBraQg0IaUyDWIVfSm-8"
+          "current_key": "AIzaSyDHCf9anxiuXRoN8oj8v0bBSgrpliGngf8"
         }
       ],
       "services": {
