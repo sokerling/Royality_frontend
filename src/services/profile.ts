@@ -10,6 +10,12 @@ export function getMyProfile(token: string): Promise<UserProfileResponse> {
   }, { token });
 }
 
+export function getUserProfile(token: string, userId: string): Promise<UserProfileResponse> {
+  return runWithXState(async (payload: { token: string; userId: string }) => {
+    return httpClient.get<UserProfileResponse>(`/users/${payload.userId}`, { token: payload.token });
+  }, { token, userId });
+}
+
 interface UpdateProfilePayload {
   nickname: string;
   avatar_url: string | null;
@@ -44,4 +50,16 @@ export function uploadMyAvatar(token: string, image: PickedImage): Promise<{ url
     token,
     image,
   });
+}
+
+export function followUser(token: string, userId: string): Promise<void> {
+  return runWithXState(async (payload: { token: string; userId: string }) => {
+    return httpClient.post<void>(`/users/${payload.userId}/follow`, { token: payload.token });
+  }, { token, userId });
+}
+
+export function unfollowUser(token: string, userId: string): Promise<void> {
+  return runWithXState(async (payload: { token: string; userId: string }) => {
+    return httpClient.delete<void>(`/users/${payload.userId}/follow`, { token: payload.token });
+  }, { token, userId });
 }

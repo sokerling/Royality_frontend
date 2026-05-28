@@ -59,6 +59,7 @@ import Register from "./Register.vue";
 import AppButton from "../components/AppButton.vue";
 import { getMyProfile } from "../services/profile";
 import { login } from "../services/auth";
+import { registerCurrentDeviceForPush } from "../services/pushNotifications";
 import { sessionStore, setSessionToken } from "../stores/session";
 
 export default defineComponent({
@@ -76,6 +77,7 @@ export default defineComponent({
     if (!sessionStore.token) return;
     try {
       sessionStore.profile = await getMyProfile(sessionStore.token);
+      void registerCurrentDeviceForPush(sessionStore.token);
       this.$navigateTo(Home, { clearHistory: true });
     } catch {
       // Keep user in login screen only when token is invalid.
@@ -106,6 +108,7 @@ export default defineComponent({
           // Some environments may return login success before profile is ready.
           sessionStore.profile = null;
         }
+        void registerCurrentDeviceForPush(token);
         this.$navigateTo(Home, { clearHistory: true });
       } catch (error) {
         this.errorText = error instanceof Error ? error.message : "Ошибка входа.";

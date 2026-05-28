@@ -1,4 +1,4 @@
-import type { PostResponse } from "../types/api";
+import type { PostCommentResponse, PostResponse } from "../types/api";
 import type { PickedImage } from "../utils/imagePicker";
 import { httpClient } from "./http";
 import { multipartUpload } from "./upload";
@@ -33,6 +33,74 @@ export function getPostById(token: string, postId: string): Promise<PostResponse
   return runWithXState(async (payload: { token: string; postId: string }) => {
     return httpClient.get<PostResponse>(`/posts/${payload.postId}`, { token: payload.token });
   }, { token, postId });
+}
+
+export function getPostComments(
+  token: string,
+  postId: string,
+  limit = 50,
+  offset = 0,
+): Promise<PostCommentResponse[]> {
+  return runWithXState(async (payload: {
+    token: string;
+    postId: string;
+    limit: number;
+    offset: number;
+  }) => {
+    return httpClient.get<PostCommentResponse[]>(`/posts/${payload.postId}/comments`, {
+      token: payload.token,
+      query: { limit: payload.limit, offset: payload.offset },
+    });
+  }, {
+    token,
+    postId,
+    limit,
+    offset,
+  });
+}
+
+export function createPostComment(
+  token: string,
+  postId: string,
+  text: string,
+): Promise<PostCommentResponse> {
+  return runWithXState(async (payload: { token: string; postId: string; text: string }) => {
+    return httpClient.post<PostCommentResponse>(`/posts/${payload.postId}/comments`, {
+      token: payload.token,
+      body: { text: payload.text },
+    });
+  }, { token, postId, text });
+}
+
+export function updatePost(
+  token: string,
+  postId: string,
+  text: string,
+  medias: string[],
+  disableComments = false,
+): Promise<PostResponse> {
+  return runWithXState(async (payload: {
+    token: string;
+    postId: string;
+    text: string;
+    medias: string[];
+    disableComments: boolean;
+  }) => {
+    return httpClient.put<PostResponse>(`/posts/${payload.postId}`, {
+      token: payload.token,
+      body: {
+        text: payload.text,
+        medias: payload.medias,
+        disable_comments: payload.disableComments,
+      },
+    });
+  }, {
+    token,
+    postId,
+    text,
+    medias,
+    disableComments,
+  });
 }
 
 export function createPost(

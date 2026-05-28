@@ -38,6 +38,22 @@ export interface PostResponse {
   disable_comments: boolean;
   author: PostAuthorResponse;
   likes_count: number;
+  comments_count: number;
   is_liked: boolean;
   created_at: string;
+}
+
+export interface PostCommentResponse {
+  id: string;
+  post_id: string;
+  text: string;
+  author: PostAuthorResponse;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PushTokenRequest {
+  token: string;
+  platform: "android" | "ios";
+  device_id?: string | null;
 }

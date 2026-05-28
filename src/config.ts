@@ -2,9 +2,7 @@ import { isAndroid } from "@nativescript/core";
 
 const fallbackBaseUrl = "http://localhost:8000/api/v1";
 
-declare const process: {
-  env?: Record<string, string | undefined>;
-};
+declare const __API_BASE_URL__: string | undefined;
 
 function normalizeBaseUrl(url: string): string {
   // In Android emulator localhost points to emulator itself, not host machine.
@@ -15,5 +13,5 @@ function normalizeBaseUrl(url: string): string {
 }
 
 export const API_BASE_URL = normalizeBaseUrl(
-  process?.env?.API_BASE_URL?.trim() || fallbackBaseUrl,
+  (typeof __API_BASE_URL__ === "string" ? __API_BASE_URL__.trim() : "") || fallbackBaseUrl,
 );
